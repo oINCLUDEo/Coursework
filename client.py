@@ -13,29 +13,36 @@ def handle_messages():
             if b:
                 received_data = client_socket.recv(4096).decode('utf-8')
                 messages = json.loads(received_data)
+                chat_text.tag_configure('me_style', foreground=nick_color, justify='right')
+                chat_text.tag_configure('me_msg', foreground='black', justify='right')
+                chat_text.tag_configure('other_style', foreground='red', justify='left')
+                chat_text.tag_configure('other_msg', foreground='black', justify='right')
                 for message in messages:
                     if message[1] != name:
                         chat_text.config(state='normal')
-                        chat_text.insert(tk.END, f'{message[1]}: {message[2]}' + '\n')
+                        chat_text.insert(tk.END, f'{message[1]}:', 'other_style')
+                        chat_text.insert(tk.END, f'{message[2]}\n', 'other_msg')
                         chat_text.config(state='disabled')
                     else:
                         chat_text.config(state='normal')
-                        chat_text.insert(tk.END, f'Вы: {message[2]}' + '\n', 'right')
+                        chat_text.insert(tk.END, f'Вы:', 'me_style')
+                        chat_text.insert(tk.END, f'{message[2]}\n', 'msg')
                         chat_text.config(state='disabled')
                 chat_text.see(tk.END)
                 b = False
             else:
                 message = client_socket.recv(1024).decode('utf-8')
                 if message:
-                    chat_text.config(state='normal')
-                    chat_text.insert(tk.END, message + '\n')
-                    chat_text.config(state='disabled')
-                    chat_text.see(tk.END)
-                    if chat_window.wm_state() == 'iconic':
-                        notification.message = f"У вас новое сообщение от пользователя: {message[1]}!"
-                        notification.audio = 'notification.wav'
-                        notification.icon = "notif1.jpg"
-                        notification.send()
+                    if message.split(':')[0] != name:
+                        chat_text.config(state='normal')
+                        chat_text.insert(tk.END, message + '\n')
+                        chat_text.config(state='disabled')
+                        chat_text.see(tk.END)
+                        if chat_window.wm_state() == 'iconic':
+                            notification.message = f"У вас новое сообщение от пользователя: {message[1]}!"
+                            notification.audio = 'notification.wav'
+                            notification.icon = "notif1.jpg"
+                            notification.send()
         except:
             break
 
@@ -91,7 +98,7 @@ def send_message(event=None):
 
 
 def open_chat(username):
-    global message_entry,chat_window, notification, chat_window
+    global message_entry,chat_window, notification, chat_window, nick_color
     notification = Notify()
     notification.title = 'Мессенджер'
 
@@ -99,6 +106,7 @@ def open_chat(username):
         client_socket.close()
         chat_window.destroy()
 
+    nick_color = 'blue'
     chat_window = tk.Tk()
     chat_window.title(f"Открыт чат для пользователя - {username}")
     chat_window.protocol("WM_DELETE_WINDOW", on_closing)  # Handle window closing event
@@ -187,6 +195,9 @@ def reg_window_password(username):
         if len(password_entry.get().rstrip(' ')) >= 1:
             print('Проверил данные')
             register(username, password_entry.get())
+            client_socket.close()
+            login_window.destroy()
+            log_window(True)
 
     reg_canvas.delete(username_text)
     username_entry.destroy()
