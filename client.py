@@ -1,19 +1,41 @@
 import json
 import tkinter as tk
 from tkinter import messagebox
+from notifypy import Notify
 import socket
 import threading
 
 
 def handle_messages():
+    b = True
     while True:
         try:
-            message = client_socket.recv(1024).decode('utf-8')
-            if message:
-                chat_text.config(state='normal')
-                chat_text.insert(tk.END, message + '\n')
-                chat_text.config(state='disabled')
+            if b:
+                received_data = client_socket.recv(4096).decode('utf-8')
+                messages = json.loads(received_data)
+                for message in messages:
+                    if message[1] != name:
+                        chat_text.config(state='normal')
+                        chat_text.insert(tk.END, f'{message[1]}: {message[2]}' + '\n')
+                        chat_text.config(state='disabled')
+                    else:
+                        chat_text.config(state='normal')
+                        chat_text.insert(tk.END, f'Вы: {message[2]}' + '\n', 'right')
+                        chat_text.config(state='disabled')
                 chat_text.see(tk.END)
+                b = False
+            else:
+                message = client_socket.recv(1024).decode('utf-8')
+                if message:
+                    chat_text.config(state='normal')
+                    chat_text.insert(tk.END, message + '\n')
+                    chat_text.config(state='disabled')
+                    chat_text.see(tk.END)
+                    if chat_window.wm_state() == 'iconic':
+                        notification.message = f"У вас новое сообщение от пользователя: {message[1]}!"
+                        notification.audio = 'notification.wav'
+                        notification.icon = "notif1.jpg"
+                        notification.send()
         except:
             break
 
@@ -52,29 +74,61 @@ def register(username, password):
         messagebox.showerror("Error", response)
 
 
+def display_message(message, align):
+    if message.split('Вы:')[1] != ' ':
+        chat_text.config(state=tk.NORMAL)  # Enable editing the text widget
+        chat_text.insert(tk.END, message + '\n', align)  # Use the tag to align the message
+        chat_text.config(state=tk.DISABLED)  # Disable editing the text widget
+        chat_text.see(tk.END)
+
+
+def send_message(event=None):
+    message = message_entry.get(1.0, tk.END).strip()
+    if message:
+        client_socket.send(message.encode('utf-8'))
+        display_message(f"Вы: {message}", 'right')  # Display the user's message on the right
+        message_entry.delete(1.0, tk.END)
+
+
 def open_chat(username):
+    global message_entry,chat_window, notification, chat_window
+    notification = Notify()
+    notification.title = 'Мессенджер'
+
+    def on_closing():
+        client_socket.close()
+        chat_window.destroy()
+
     chat_window = tk.Tk()
     chat_window.title(f"Открыт чат для пользователя - {username}")
-
+    chat_window.protocol("WM_DELETE_WINDOW", on_closing)  # Handle window closing event
+    global name
+    name = username
+    chat_canvas = tk.Canvas(chat_window, width=100, height=20, bg='white')
+    chat_canvas.place(x='0', y='0')
     chat_label = tk.Label(chat_window, text=f"Добро пожаловать, {username}!", font=("Segoe UI", 14), bg='#3300cc')
-    chat_label.pack(pady=10)
+    chat_label.grid(row=0, column=0, columnspan=2)
 
     global chat_text
-    chat_text = tk.Text(chat_window, height=20, width=50)
-    chat_text.pack()
+    scrollbar = tk.Scrollbar(chat_window)
+    scrollbar.grid(row=1, column=1, sticky=tk.NS)
+
+    chat_text = tk.Text(chat_window, height=20, width=50, wrap="word", yscrollcommand=scrollbar.set)
+    chat_text.grid(row=1, column=0)
+
+    scrollbar.config(command=chat_text.yview)
     chat_text.config(state='disabled')
+    chat_text.tag_configure('left', justify='left')
+    chat_text.tag_configure('right', justify='right')
 
-    global message_entry
-    message_entry = tk.Entry(chat_window, width=40)
-    message_entry.pack(pady=10)
+    message_entry = tk.Text(chat_window, width=40, height=4)
+    message_entry.grid(row=2, column=0)
+    message_entry.see(1.0)
+    message_entry.mark_set('insert', '1.0')
 
-    def send_message():
-        message = message_entry.get()
-        client_socket.send(message.encode('utf-8'))
-        message_entry.delete(0, tk.END)
-
+    message_entry.bind('<Return>', send_message)
     send_button = tk.Button(chat_window, text="Send", command=send_message)
-    send_button.pack()
+    send_button.grid(row=2, column=1)
 
     threading.Thread(target=handle_messages).start()
 
@@ -159,7 +213,7 @@ def log_window(k):
 
     global client_socket, login_window
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(('localhost', 9090))
+    client_socket.connect(('192.168.0.107', 9090))
     login_window = tk.Tk()
     login_window.geometry('1000x750')  # Задаём размер
     login_window.title("Messenger")

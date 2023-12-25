@@ -1,6 +1,8 @@
+import json
 import socket
 import threading
 import sqlite3
+import time
 
 
 # Functions for database and user handling (create_database, register_user, check_credentials) remain unchanged
@@ -62,21 +64,20 @@ def save_message_to_db(username, message):
 
 
 # Function to retrieve chat history from the database
-def retrieve_chat_history():
+def retrieve_chat_history(client_socket):
+    global chat_history
     conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     c.execute("SELECT * FROM messages")
     history = c.fetchall()
+    json_messages = json.dumps(history)
+    client_socket.sendall(json_messages.encode())
+    chat_history = history
     conn.close()
-    return history
 
 
 def handle_client(client_socket, username):
-    global chat_history
-
-    # Send chat history to the client upon connection
-    for message in chat_history:
-        client_socket.send(f"\n{message[1]}: {message[2]}".encode('utf-8'))
+    retrieve_chat_history(client_socket)
     print('прилет')
     while True:
         try:
@@ -104,14 +105,14 @@ def broadcast(message):
 create_chat_history_table()
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('localhost', 9090))
+server.bind(('192.168.0.107', 9090))
 server.listen(100)
 
 # List to store connected clients
 clients = []
 
+
 # Load chat history from the database
-chat_history = retrieve_chat_history()
 
 
 # Accept and handle client connections
@@ -124,6 +125,8 @@ def accept_clients():
             username = client_socket.recv(1024).decode('utf-8')
             password = client_socket.recv(1024).decode('utf-8')
 
+            global name
+            name = username
             if check_credentials(username, password):
                 clients.append(client_socket)
                 client_socket.send("Login successful".encode('utf-8'))
