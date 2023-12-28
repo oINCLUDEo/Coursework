@@ -105,7 +105,7 @@ def broadcast(message):
 create_chat_history_table()
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('192.168.0.107', 9090))
+server.bind(('localhost', 9090))
 server.listen(100)
 
 # List to store connected clients
@@ -122,8 +122,9 @@ def accept_clients():
         option = client_socket.recv(1024).decode('utf-8')
 
         if option.lower() == "login":
-            username = client_socket.recv(1024).decode('utf-8')
-            password = client_socket.recv(1024).decode('utf-8')
+            data = client_socket.recv(4096).decode('utf-8')
+            username, password = json.loads(data)
+
 
             global name
             name = username
@@ -135,16 +136,13 @@ def accept_clients():
                 threading.Thread(target=handle_client, args=(client_socket, username)).start()
             else:
                 client_socket.send("Invalid credentials".encode('utf-8'))
-                client_socket.close()
         elif option.lower() == "register":
-            username = client_socket.recv(1024).decode('utf-8')
-            password = client_socket.recv(1024).decode('utf-8')
-
+            data = client_socket.recv(4096).decode('utf-8')
+            username, password = json.loads(data)
             if register_user(username, password):
-                client_socket.send("Registration successful".encode('utf-8'))
+                client_socket.send("Регистрация выполнена успешно".encode('utf-8'))
             else:
-                client_socket.send("Username already exists".encode('utf-8'))
-                client_socket.close()
+                client_socket.send("Имя пользователя занято :(".encode('utf-8'))
 
 
 # Rest of the server code remains the same
