@@ -32,9 +32,9 @@ def handle_messages():
                         chat_text.insert(tk.END, message + '\n')
                         chat_text.config(state='disabled')
                         if chat_window.wm_state() == 'iconic':
-                            notification.message = f"У вас новое сообщение от пользователя: {message[1]}!"
-                            notification.audio = 'notification.wav'
-                            notification.icon = "notif1.jpg"
+                            notification.message = f"У вас новое сообщение от пользователя: {message.split(':')[0]}!"
+                            notification.audio = 'resources/notification.wav'
+                            notification.icon = "resources/notif1.jpg"
                             notification.send()
                 chat_text.see(tk.END)
         except:
@@ -110,7 +110,7 @@ def open_chat(username):
     chat_window = tk.Tk()
     chat_window.title(f"Открыт чат для пользователя - {username}")
     chat_window.protocol("WM_DELETE_WINDOW", on_closing)  # Handle window closing event
-    chat_window.iconbitmap(r'icon.ico')
+    chat_window.iconbitmap(r'resources/icon.ico')
     global name
     name = username
     chat_canvas = tk.Canvas(chat_window, width=460, height=50, bg='#3300cc')
@@ -136,7 +136,7 @@ def open_chat(username):
     message_entry.mark_set('insert', '1.0')
 
     message_entry.bind('<Return>', send_message)
-    but_photo = tk.PhotoImage(file='next button.gif')
+    but_photo = tk.PhotoImage(file='resources/next button.gif')
     send_button = tk.Button(chat_window, image=but_photo, command=send_message)
     send_button.grid(row=2, column=1)
 
@@ -161,7 +161,6 @@ def reg_window_username(event):
         next_button.configure(fg='#fff')
 
     def check_data():
-        print('ку')
         if len(username_entry.get().rstrip(' ')) >= 1:
             username = username_entry.get()
             reg_window_password(username)
@@ -201,7 +200,6 @@ def reg_window_password(username):
 
     def check_data():
         if len(password_entry.get().rstrip(' ')) >= 3:
-            print('Проверил данные')
             register(username, password_entry.get())
         else:
             messagebox.showwarning('Ошибка.', 'Введенный пароль слишком короткий!\n Пароль должен быть длинее двух '
@@ -238,18 +236,17 @@ def log_window():
     login_window.geometry('1000x750')  # Задаём размер
     login_window.title("Messenger")
     login_window.resizable(width=False, height=False)
-    login_window.iconbitmap(r'icon.ico')
+    login_window.iconbitmap(r'resources/icon.ico')
     global canvas
     canvas = tk.Canvas(login_window, width=1000, height=750)
     canvas.pack()
     canvas.pack_propagate(False)
-    img = tk.PhotoImage(file='back.gif')
+    img = tk.PhotoImage(file='resources/back.gif')
     canvas.create_image(0, 0, anchor=tk.NW, image=img)
     global auth_canvas
     auth_canvas = tk.Canvas(canvas, width=250, height=300, bg='white')
     auth_canvas.place(x='375', y='225')
     auth_canvas.pack_propagate(False)
-    print('норм')
     username_text = auth_canvas.create_text(125, 20, text="Имя пользователя", fill="Black", font=('Perpetua', 14))
     username_entry = tk.Entry(auth_canvas, width=20, font=('Segoe UI', 14))
     username_entry.config(highlightbackground="black")

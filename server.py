@@ -26,7 +26,7 @@ def register_user(username, password):
 
 
 def check_credentials(username, password):
-    conn = sqlite3.connect('user_credentials.db')
+    conn = sqlite3.connect('data/user_credentials.db')
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
@@ -37,7 +37,7 @@ def check_credentials(username, password):
 
 
 def save_message_to_db(username, message):
-    conn = sqlite3.connect('chat_history.db')
+    conn = sqlite3.connect('data/chat_history.db')
     c = conn.cursor()
     c.execute("INSERT INTO messages (username, message) VALUES (?, ?)", (username, message))
     conn.commit()
@@ -46,7 +46,7 @@ def save_message_to_db(username, message):
 
 def retrieve_chat_history(client_socket):
     global chat_history
-    conn = sqlite3.connect('chat_history.db')
+    conn = sqlite3.connect('data/chat_history.db')
     c = conn.cursor()
     c.execute("SELECT * FROM messages")
     history = c.fetchall()
