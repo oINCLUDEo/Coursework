@@ -7,10 +7,10 @@ import threading
 
 
 def handle_messages():
-    b = True
+    history_receive = True
     while True:
         try:
-            if b:
+            if history_receive:
                 received_data = client_socket.recv(4096).decode('utf-8')
                 messages = json.loads(received_data)
                 for message in messages:
@@ -23,7 +23,7 @@ def handle_messages():
                         chat_text.insert(tk.END, f'Вы: {message[2]}' + '\n', 'right')
                         chat_text.config(state='disabled')
                 chat_text.see(tk.END)
-                b = False
+                history_receive = False
             else:
                 message = client_socket.recv(1024).decode('utf-8')
                 if message:
@@ -48,14 +48,15 @@ def login(username, password):
     json_data = json.dumps(data)
     client_socket.sendall(json_data.encode())
 
-    print('работаем')
     response = client_socket.recv(1024).decode('utf-8')
-    print('не работаем')
     if response == "Login successful":
         login_window.destroy()
         open_chat(username)
     else:
-        messagebox.showerror("Error", response)
+        messagebox.showerror("Ошибка!", response)
+        login_window.destroy()
+        client_socket.close()
+        log_window()
 
 
 def register(username, password):
@@ -64,7 +65,6 @@ def register(username, password):
     data = [username, password]
     json_data = json.dumps(data)
     client_socket.sendall(json_data.encode())
-    print('пытаюсь')
     response = client_socket.recv(1024).decode('utf-8')
     if response == "Регистрация выполнена успешно":
         messagebox.showinfo("Успешно!", "Регистрация выполнена успешно. Теперь вы можете войти в аккаунт.")
@@ -116,11 +116,8 @@ def open_chat(username):
     chat_canvas = tk.Canvas(chat_window, width=460, height=50, bg='#3300cc')
     chat_canvas.grid(row=0, column=0, columnspan=2)
     welcome_text = chat_canvas.create_text(232.5, 30, anchor='center', text=f'Добро пожаловать, {name.upper()}',
-                                      fill="#fff",
-                                      font=('Segoe UI', 14, 'bold'))
-    # chat_label = tk.Label(chat_window, text=f"Добро пожаловать, {username}!", font=("Segoe UI", 14), bg='#3300cc')
-    # chat_label.grid(row=0, column=0, columnspan=2)
-
+                                           fill="#fff",
+                                           font=('Segoe UI', 14, 'bold'))
     global chat_text
     scrollbar = tk.Scrollbar(chat_window)
     scrollbar.grid(row=1, column=1, sticky=tk.NS)
@@ -168,6 +165,8 @@ def reg_window_username(event):
         if len(username_entry.get().rstrip(' ')) >= 1:
             username = username_entry.get()
             reg_window_password(username)
+        else:
+            messagebox.showwarning('Ошибка.', 'Слишком короткое имя пользователя!')
 
     global reg_canvas
     reg_canvas = tk.Canvas(canvas, width=250, height=300, bg='white')
@@ -184,15 +183,11 @@ def reg_window_username(event):
                             font=('Perpetua', 14))
     next_button.bind('<Enter>', focus_in)  # При входе курсора в область кнопки выполняем focus_in
     next_button.bind('<Leave>', focus_out)  # При выходе курсора из области кнопки выполняем focus_out_out
-    # register_button = tk.Label(auth_canvas, text="Регистрация", fg='blue', bg='white', cursor='hand2',
-    #                           font=('Perpetua', 14, 'underline'))
-    # register_button.bind("<Button-1>", reg_window)
 
     username_entry.pack_propagate(False)
     username_entry.place(x='25', y='100')
 
     next_button.place(x='95', y='160')
-    # register_button.place(x='65', y='220')
 
 
 def reg_window_password(username):
@@ -205,9 +200,12 @@ def reg_window_password(username):
         next_button2.configure(fg='#fff')
 
     def check_data():
-        if len(password_entry.get().rstrip(' ')) >= 1:
+        if len(password_entry.get().rstrip(' ')) >= 3:
             print('Проверил данные')
             register(username, password_entry.get())
+        else:
+            messagebox.showwarning('Ошибка.', 'Введенный пароль слишком короткий!\n Пароль должен быть длинее двух '
+                                              'символов')
 
     reg_canvas.delete(username_text)
     username_entry.destroy()
